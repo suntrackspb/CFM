@@ -1,0 +1,26 @@
+/* Monokai-inspired dark theme */
+Screen {
+  background: #272822;
+  color: #f8f8f2;
+}
+
+Header, Footer {
+  background: #49483e;
+  color: #66d9ef;
+}
+
+Panel {
+  border: solid #49483e;
+}
+
+.divider {
+  color: #66d9ef;
+  width: 1;
+  min-width: 1;
+  max-width: 1;
+  text-align: center;
+}
+
+.panel-container {
+  width: 1fr;
+} 
