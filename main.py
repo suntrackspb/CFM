@@ -9,6 +9,8 @@ from file_panel import FilePanel
 from dialogs import DialogConfirm, DialogInput
 import shutil
 
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+
 class FileManagerApp(App):
     CSS_PATH = "theme.css"
     BINDINGS = [
@@ -21,18 +23,51 @@ class FileManagerApp(App):
         ("enter", "open_or_enter", "Open/Enter"),
         ("left", "up", "Up"),
         ("backspace", "up", "Up"),
-        ("cmd+shift+.", "toggle_hidden", "Show/Hide Hidden (Mac)"),
-        ("win+shift+.", "toggle_hidden", "Show/Hide Hidden (Win/Linux)"),
+        ("f9", "toggle_hidden", "Show/Hide Hidden"),
     ]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.lang = self.load_lang('en')
-        home = os.path.expanduser('~')
-        root = os.path.abspath(os.sep)
-        self.left_panel = FilePanel(home, lang=self.lang, active=True)
-        self.right_panel = FilePanel(root, lang=self.lang, active=False)
-        self.active_panel = 'left'
+        config = self.load_config()
+        self.lang_code = config.get('lang', 'en')
+        self.lang = self.load_lang(self.lang_code)
+        left_path = config.get('left_panel', os.path.expanduser('~'))
+        right_path = config.get('right_panel', os.path.abspath(os.sep))
+        show_hidden_left = config.get('show_hidden_left', False)
+        show_hidden_right = config.get('show_hidden_right', False)
+        self.left_panel = FilePanel(left_path, lang=self.lang, active=True, show_hidden=show_hidden_left)
+        self.right_panel = FilePanel(right_path, lang=self.lang, active=False, show_hidden=show_hidden_right)
+        self.active_panel = config.get('active_panel', 'left')
+
+    def save_config(self):
+        config = {
+            'left_panel': self.left_panel.path,
+            'right_panel': self.right_panel.path,
+            'active_panel': self.active_panel,
+            'lang': getattr(self, 'lang_code', 'en'),
+            'show_hidden_left': self.left_panel.show_hidden,
+            'show_hidden_right': self.right_panel.show_hidden,
+        }
+        try:
+            with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+                json.dump(config, f)
+        except Exception:
+            pass
+
+    def load_config(self):
+        try:
+            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return {}
+
+    def set_active_panel(self, panel_name):
+        self.active_panel = panel_name
+        self.left_panel.active = (panel_name == 'left')
+        self.right_panel.active = (panel_name == 'right')
+        self.left_panel.refresh()
+        self.right_panel.refresh()
+        self.save_config()
 
     def load_lang(self, code):
         path = os.path.join('lang', f'{code}.json')
@@ -49,8 +84,7 @@ class FileManagerApp(App):
         yield Footer()
 
     async def on_mount(self) -> None:
-        # TODO: инициализация панелей, загрузка сессии, языков
-        pass
+        self.set_active_panel(self.active_panel)
 
     async def on_key(self, event: events.Key) -> None:
         # Обработка Tab для переключения панели
@@ -65,17 +99,10 @@ class FileManagerApp(App):
                 await self.right_panel.on_key(event)
 
     async def action_switch_panel(self):
-        # Переключение активной панели
         if self.active_panel == 'left':
-            self.left_panel.active = False
-            self.right_panel.active = True
-            self.active_panel = 'right'
+            self.set_active_panel('right')
         else:
-            self.left_panel.active = True
-            self.right_panel.active = False
-            self.active_panel = 'left'
-        self.left_panel.refresh()
-        self.right_panel.refresh()
+            self.set_active_panel('left')
 
     async def action_copy(self):
         src_panel = self.left_panel if self.active_panel == 'left' else self.right_panel
@@ -112,6 +139,7 @@ class FileManagerApp(App):
         self._copy_dst_panel.refresh()
         self._copy_queue = None
         self._copy_overwrite_all = False
+        self.save_config()
 
     def _do_copy(self, src_path, dst_path, src_panel, dst_panel):
         try:
@@ -156,6 +184,7 @@ class FileManagerApp(App):
         self._move_dst_panel.refresh()
         self._move_queue = None
         self._move_overwrite_all = False
+        self.save_config()
 
     def _do_move(self, src_path, dst_path, src_panel, dst_panel):
         try:
@@ -190,6 +219,7 @@ class FileManagerApp(App):
         self._delete_panel.refresh_files()
         self._delete_panel.refresh()
         self._delete_queue = None
+        self.save_config()
 
     async def on_dialog_confirm_result(self, message):
         if not hasattr(self, 'dialog'):
@@ -314,7 +344,6 @@ class FileManagerApp(App):
             await self.right_panel.on_key(events.Key("left", ""))
 
     async def action_toggle_hidden(self):
-        # Переключение отображения скрытых файлов
         if self.active_panel == 'left':
             self.left_panel.show_hidden = not self.left_panel.show_hidden
             self.left_panel.refresh_files()
@@ -323,6 +352,7 @@ class FileManagerApp(App):
             self.right_panel.show_hidden = not self.right_panel.show_hidden
             self.right_panel.refresh_files()
             self.right_panel.refresh()
+        self.save_config()
 
 if __name__ == "__main__":
     FileManagerApp().run() 

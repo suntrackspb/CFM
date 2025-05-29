@@ -57,6 +57,8 @@ class FilePanel(Widget):
             self.selected_indices = set()
             self.last_selected = None
             self.refresh_files()
+            if hasattr(self, 'app'):
+                self.app.save_config()
 
     def go_up(self):
         parent = os.path.dirname(self.path)
@@ -66,6 +68,8 @@ class FilePanel(Widget):
             self.selected_indices = set()
             self.last_selected = None
             self.refresh_files()
+            if hasattr(self, 'app'):
+                self.app.save_config()
 
     def get_selected_path(self):
         if not self.files:
