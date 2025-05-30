@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Any, Dict, Optional, Set
 from textual.widget import Widget
 from textual.reactive import reactive
 from textual import events
@@ -5,21 +7,21 @@ import os
 import datetime
 
 class FilePanel(Widget):
-    def __init__(self, path, show_hidden=False, lang=None, active=False, **kwargs):
+    def __init__(self, path: str, show_hidden: bool = False, lang: Optional[Dict[str, str]] = None, active: bool = False, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.path = path
-        self.show_hidden = show_hidden
-        self.lang = lang or {}
-        self.files = []
-        self.selected = 0
-        self.active = active
-        self.selected_indices = set()  # Для множественного выделения
-        self.last_selected = None  # Для Shift-выделения
-        self.drag_select_start = None  # Для протяжки мышью
-        self.drag_select_button = None
+        self.path: str = path
+        self.show_hidden: bool = show_hidden
+        self.lang: Dict[str, str] = lang or {}
+        self.files: list[Dict[str, Any]] = []
+        self.selected: int = 0
+        self.active: bool = active
+        self.selected_indices: Set[int] = set()  # Для множественного выделения
+        self.last_selected: Optional[int] = None  # Для Shift-выделения
+        self.drag_select_start: Optional[int] = None  # Для протяжки мышью
+        self.drag_select_button: Optional[int] = None
         self.refresh_files()
 
-    def refresh_files(self):
+    def refresh_files(self) -> None:
         try:
             entries = os.listdir(self.path)
             if not self.show_hidden:
@@ -47,7 +49,7 @@ class FilePanel(Widget):
         except Exception as e:
             self.files = []
 
-    def enter_selected(self):
+    def enter_selected(self) -> None:
         if not self.files:
             return
         selected_file = self.files[self.selected]
@@ -60,7 +62,7 @@ class FilePanel(Widget):
             if hasattr(self, 'app'):
                 self.app.save_config()
 
-    def go_up(self):
+    def go_up(self) -> None:
         parent = os.path.dirname(self.path)
         if parent and parent != self.path:
             self.path = parent
@@ -71,12 +73,12 @@ class FilePanel(Widget):
             if hasattr(self, 'app'):
                 self.app.save_config()
 
-    def get_selected_path(self):
+    def get_selected_path(self) -> Optional[str]:
         if not self.files:
             return None
         return os.path.join(self.path, self.files[self.selected]['name'])
 
-    def open_selected_file(self):
+    def open_selected_file(self) -> None:
         selected = self.get_selected_path()
         if not selected or os.path.isdir(selected):
             return
@@ -92,7 +94,7 @@ class FilePanel(Widget):
         except Exception as e:
             pass
 
-    def render(self):
+    def render(self) -> Any:
         from rich.table import Table
         from rich.text import Text
         from rich.panel import Panel
@@ -120,7 +122,7 @@ class FilePanel(Widget):
         border_style = "bold #66d9ef" if self.active else "#49483e"
         return Panel(table, title=title, border_style=border_style, expand=True)
 
-    async def on_key(self, event: events.Key):
+    async def on_key(self, event: events.Key) -> None:
         if not self.active:
             return
         if event.key == "up":
@@ -138,7 +140,7 @@ class FilePanel(Widget):
             self.refresh()
         # Навигация и другие действия будут добавлены позже 
 
-    async def on_mouse_down(self, event):
+    async def on_mouse_down(self, event: Any) -> None:
         if not hasattr(event, 'y'):
             return
         row = event.y - self.region.y - 1  # 0 — заголовок
@@ -181,7 +183,7 @@ class FilePanel(Widget):
         self.app.left_panel.refresh()
         self.app.right_panel.refresh()
 
-    async def on_mouse_move(self, event):
+    async def on_mouse_move(self, event: Any) -> None:
         if self.drag_select_start is not None and self.drag_select_button == 3:
             row = event.y - self.region.y - 1
             if row < 0:
@@ -194,12 +196,12 @@ class FilePanel(Widget):
             self.selected = row
             self.refresh()
 
-    async def on_mouse_up(self, event):
+    async def on_mouse_up(self, event: Any) -> None:
         if getattr(event, 'button', 1) == 3:
             self.drag_select_start = None
             self.drag_select_button = None
 
-    async def on_double_click(self, event):
+    async def on_double_click(self, event: Any) -> None:
         if not hasattr(event, 'y'):
             return
         row = event.y - self.region.y - 1

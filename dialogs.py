@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Any, Optional
 from textual.widget import Widget
 from textual.widgets import Button, Static, Input
 from textual.containers import Horizontal
@@ -6,21 +8,21 @@ from textual import events
 
 class DialogConfirm(Widget):
     class Result(Message):
-        def __init__(self, result):
+        def __init__(self, result: str) -> None:
             super().__init__()
-            self.result = result
+            self.result: str = result
 
-    def __init__(self, text, yes="Yes", no="No", cancel=None):
+    def __init__(self, text: str, yes: str = "Yes", no: str = "No", cancel: Optional[str] = None) -> None:
         super().__init__()
-        self.text = text
-        self.yes = yes
-        self.no = no
-        self.cancel = cancel
-        self._btn_yes = Button(self.yes, id="yes")
-        self._btn_no = Button(self.no, id="no")
-        self._btn_cancel = Button(self.cancel, id="cancel") if self.cancel else None
+        self.text: str = text
+        self.yes: str = yes
+        self.no: str = no
+        self.cancel: Optional[str] = cancel
+        self._btn_yes: Button = Button(self.yes, id="yes")
+        self._btn_no: Button = Button(self.no, id="no")
+        self._btn_cancel: Optional[Button] = Button(self.cancel, id="cancel") if self.cancel else None
 
-    def compose(self):
+    def compose(self) -> Any:
         yield Static(self.text)
         btns = [self._btn_yes, self._btn_no]
         if self._btn_cancel:
@@ -48,21 +50,21 @@ class DialogConfirm(Widget):
 
 class DialogInput(Widget):
     class Result(Message):
-        def __init__(self, value, confirmed):
+        def __init__(self, value: str, confirmed: bool) -> None:
             super().__init__()
-            self.value = value
-            self.confirmed = confirmed
+            self.value: str = value
+            self.confirmed: bool = confirmed
 
-    def __init__(self, prompt, ok="OK", cancel="Cancel"):
+    def __init__(self, prompt: str, ok: str = "OK", cancel: str = "Cancel") -> None:
         super().__init__()
-        self.prompt = prompt
-        self.ok = ok
-        self.cancel = cancel
-        self._input = Input(placeholder="", id="input")
-        self._btn_ok = Button(self.ok, id="ok")
-        self._btn_cancel = Button(self.cancel, id="cancel")
+        self.prompt: str = prompt
+        self.ok: str = ok
+        self.cancel: str = cancel
+        self._input: Input = Input(placeholder="", id="input")
+        self._btn_ok: Button = Button(self.ok, id="ok")
+        self._btn_cancel: Button = Button(self.cancel, id="cancel")
 
-    def compose(self):
+    def compose(self) -> Any:
         yield Static(self.prompt)
         yield self._input
         yield Horizontal(self._btn_ok, self._btn_cancel)
