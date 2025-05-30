@@ -10,11 +10,18 @@ import json
 from file_panel import FilePanel
 from dialogs import DialogConfirm, DialogInput
 import shutil
+import sys
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
+def resource_path(relative_path: str) -> str:
+    """Возвращает абсолютный путь к ресурсу, работает и для PyInstaller, и для обычного запуска."""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
 class FileManagerApp(App):
-    CSS_PATH = "theme.css"
+    CSS_PATH = resource_path("theme.css")
     BINDINGS = [
         ("f5", "copy", "Copy"),
         ("f6", "move", "Move"),
@@ -68,7 +75,7 @@ class FileManagerApp(App):
         self.save_config()
 
     def load_lang(self, code: str) -> Dict[str, str]:
-        path = os.path.join('lang', f'{code}.json')
+        path = resource_path(os.path.join('lang', f'{code}.json'))
         with open(path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
