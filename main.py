@@ -1,7 +1,7 @@
 from __future__ import annotations
-from typing import Any, Dict, Optional, Set, List
+from typing import Any, Dict, Optional, Set, List, TYPE_CHECKING
 from textual.app import App
-from textual.widgets import Header, Footer, Static
+from textual.widgets import Header, Footer, Static, Button
 from textual.reactive import reactive
 from textual import events
 from textual.containers import Horizontal, Vertical, Container
@@ -11,6 +11,7 @@ from file_panel import FilePanel
 from dialogs import DialogConfirm, DialogInput
 import shutil
 import sys
+from textual.widget import Widget
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
@@ -23,6 +24,7 @@ def resource_path(relative_path: str) -> str:
 class FileManagerApp(App):
     CSS_PATH = resource_path("theme.css")
     BINDINGS = [
+        ("f1", "help", "Help"),
         ("f5", "copy", "Copy"),
         ("f6", "move", "Move"),
         ("f7", "mkdir", "Create Folder"),
@@ -92,6 +94,9 @@ class FileManagerApp(App):
         self.set_active_panel(self.active_panel)
 
     async def on_key(self, event: events.Key) -> None:
+        if event.key == "f1":
+            await self.action_help()
+            return
         # Tab — переключение панели
         if event.key == "tab":
             await self.action_switch_panel()
@@ -356,6 +361,72 @@ class FileManagerApp(App):
             self.right_panel.refresh_files()
             self.right_panel.refresh()
         self.save_config()
+
+    async def action_help(self) -> None:
+        dialog = HelpDialog(self.lang)
+        await self.mount(dialog)
+        self.set_focus(dialog)
+
+class HelpDialog(Widget):
+    def __init__(self, lang: Dict[str, str]) -> None:
+        super().__init__()
+        self.lang = lang
+        self._btn_close = Button("OK", id="close")
+
+    def compose(self) -> Any:
+        help_text = [
+            ("F1", "Показать это окно помощи"),
+            ("Tab", "Переключить активную панель"),
+            ("F5", "Копировать (массовое копирование)"),
+            ("F6", "Переместить (массовое перемещение)"),
+            ("F7", "Создать папку"),
+            ("F8", "Удалить (массовое удаление)"),
+            ("F9", "Показать/скрыть скрытые файлы"),
+            ("Стрелки", "Навигация по списку"),
+            ("Enter/→", "Открыть файл или войти в папку"),
+            ("←/Backspace", "Выйти на уровень выше"),
+            ("Y/N/C", "Подтверждение в диалогах (Yes/No/Cancel)"),
+            ("Пробел", "Добавить/убрать файл из выделения"),
+            ("Ctrl+ЛКМ", "Добавить/убрать из выделения мышью"),
+            ("Shift+ЛКМ", "Выделить диапазон мышью"),
+            ("ПКМ", "Добавить/убрать из выделения, протяжка — диапазон"),
+            ("Двойной клик", "Открыть файл/войти в папку"),
+        ]
+        yield Static("[b]Горячие клавиши и управление[/b]", classes="help-title")
+        for key, desc in help_text:
+            yield Static(f"[b]{key}[/b] — {desc}", classes="help-item")
+        yield self._btn_close
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "close":
+            await self.remove()
+
+    async def on_key(self, event: events.Key) -> None:
+        if event.key in ("escape", "f1", "enter"):
+            await self.remove()
+
+# Патч для FilePanel: добавить метод focus_panel
+if TYPE_CHECKING:
+    from main import FileManagerApp
+
+# В file_panel.py добавить:
+# def focus_panel(self):
+#     if hasattr(self, 'app') and hasattr(self.app, 'set_active_panel'):
+#         panel_name = 'left' if self is self.app.left_panel else 'right'
+#         self.app.set_active_panel(panel_name)
+
+# Но так как FilePanel уже импортирован, патчим его здесь:
+setattr(FilePanel, 'focus_panel', lambda self: getattr(self, 'app', None) and hasattr(self.app, 'set_active_panel') and self.app.set_active_panel('left' if self is self.app.left_panel else 'right'))
+
+# Далее, в file_panel.py в методе on_mouse_down после self.app.set_focus(self):
+#     self.focus_panel()
+
+# Но так как мы не можем редактировать file_panel.py отсюда, делаем monkey-patch через setattr:
+old_on_mouse_down = FilePanel.on_mouse_down
+async def new_on_mouse_down(self, event):
+    await old_on_mouse_down(self, event)
+    self.focus_panel()
+FilePanel.on_mouse_down = new_on_mouse_down
 
 if __name__ == "__main__":
     FileManagerApp().run() 
