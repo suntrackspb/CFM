@@ -20,12 +20,8 @@ class FileManagerApp(App):
         ("f6", "move", "Move"),
         ("f7", "mkdir", "Create Folder"),
         ("f8", "delete", "Delete"),
+        ("f9", "toggle_hidden", "Switch Hidden"),
         ("tab", "switch_panel", "Switch Panel"),
-        ("right", "open_or_enter", "Open/Enter"),
-        ("enter", "open_or_enter", "Open/Enter"),
-        ("left", "up", "Up"),
-        ("backspace", "up", "Up"),
-        ("f9", "toggle_hidden", "Show/Hide Hidden"),
     ]
 
     def __init__(self, **kwargs: Any) -> None:
@@ -89,10 +85,12 @@ class FileManagerApp(App):
         self.set_active_panel(self.active_panel)
 
     async def on_key(self, event: events.Key) -> None:
+        # Tab — переключение панели
         if event.key == "tab":
             await self.action_switch_panel()
             return
-        if event.key in ("up", "down"):
+        # Делегируем ВСЕ стрелочные события (с модификаторами) и Enter/Backspace в активную панель
+        if event.key in ("up", "down", "left", "right", "enter", "backspace"):
             if self.active_panel == 'left':
                 await self.left_panel.on_key(event)
             else:
