@@ -50,4 +50,95 @@ python main.py
 - Массовые операции с файлами и папками
 - Мультиязычность (en/ru), легко добавить новые языки
 - Тёмная тема (Monokai)
-- Сохранение состояния между сессиями 
+- Сохранение состояния между сессиями
+
+## Сборка односоставного исполняемого файла (PyInstaller)
+
+### 1. Установка PyInstaller
+
+```bash
+pip install pyinstaller
+```
+
+### 2. Сборка для вашей ОС
+
+#### Windows
+```bash
+pyinstaller --onefile --add-data "lang;lang" --add-data "theme.css;." --name=cfm main.py
+```
+
+#### Linux/Mac
+```bash
+pyinstaller --onefile --add-data "lang:lang" --add-data "theme.css:." --name=cfm main.py
+```
+
+- Готовый файл будет в папке `dist/` (например, `dist/cfm.exe` или `dist/cfm`).
+- Для каждой ОС сборку делайте на соответствующей системе.
+
+### 3. Включение ресурсов (языки, темы)
+
+PyInstaller должен включить папку `lang` и файл `theme.css`:
+- `--add-data "lang:lang"` — папка с языками
+- `--add-data "theme.css:."` — файл темы
+
+### 4. Пример .spec-файла (альтернатива команде)
+
+Создайте файл `cfm.spec`:
+```python
+# -*- mode: python ; coding: utf-8 -*-
+block_cipher = None
+
+a = Analysis(
+    ['main.py'],
+    pathex=[],
+    binaries=[],
+    datas=[
+        ('lang', 'lang'),
+        ('theme.css', '.'),
+    ],
+    hiddenimports=[],
+    hookspath=[],
+    runtime_hooks=[],
+    excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+exe = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name='cfm',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=True,
+)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='cfm'
+)
+```
+
+Сборка по .spec-файлу:
+```bash
+pyinstaller cfm.spec
+```
+
+### 5. Советы
+- Добавьте `build/`, `dist/`, `*.spec` в `.gitignore`.
+- Если не работает запуск — проверьте, что ресурсы (lang, theme.css) попали в папку рядом с бинарником.
+- Для Mac: если нужен .app, используйте флаг `--windowed` и настройте Info.plist.
+
+---
+
+**Вопросы по сборке или ошибкам — пишите!** 
