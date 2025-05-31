@@ -33,10 +33,7 @@ CFM/
 ├── lang/                          # Языковые файлы
 │   ├── en.json
 │   └── ru.json
-├── main_new.py                    # Новая версия приложения
-├── main.py                        # Старая версия (legacy)
-├── file_panel.py                  # Старая версия (legacy)
-├── dialogs.py                     # Старая версия (legacy)
+├── main.py                         # Основной файл запуска
 ├── config.json                    # Конфигурация
 ├── theme.css                      # Стили
 └── requirements.txt
