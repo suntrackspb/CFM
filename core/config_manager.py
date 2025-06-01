@@ -45,6 +45,7 @@ class ConfigManager:
                 with open(self.config_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     
+                logger.debug(f"Загружены данные конфигурации: {type(data)} = {data}")
                 self._config = AppConfig.from_dict(data)
                 logger.info(f"Конфигурация загружена из {self.config_path}")
             else:

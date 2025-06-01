@@ -36,6 +36,8 @@ class PanelConfig:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> PanelConfig:
         """Создает экземпляр из словаря."""
+        if not isinstance(data, dict):
+            data = {}
         return cls(
             path=Path(data.get('path', str(Path.home()))),
             show_hidden=data.get('show_hidden', False),
@@ -89,9 +91,20 @@ class AppConfig:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> AppConfig:
         """Создает экземпляр из словаря."""
+        if not isinstance(data, dict):
+            data = {}
+            
+        left_panel_data = data.get('left_panel', {})
+        if not isinstance(left_panel_data, dict):
+            left_panel_data = {}
+            
+        right_panel_data = data.get('right_panel', {})
+        if not isinstance(right_panel_data, dict):
+            right_panel_data = {}
+            
         return cls(
-            left_panel=PanelConfig.from_dict(data.get('left_panel', {})),
-            right_panel=PanelConfig.from_dict(data.get('right_panel', {})),
+            left_panel=PanelConfig.from_dict(left_panel_data),
+            right_panel=PanelConfig.from_dict(right_panel_data),
             active_panel=data.get('active_panel', 'left'),
             language=data.get('language', 'en'),
             theme=data.get('theme', 'monokai'),

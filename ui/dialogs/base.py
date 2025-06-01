@@ -2,7 +2,7 @@
 Базовые классы для диалоговых окон.
 """
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Any, Optional, Dict, Callable
 from textual.widget import Widget
 from textual.widgets import Button, Static
@@ -21,7 +21,7 @@ class DialogResult(Message):
         self.confirmed = confirmed
 
 
-class BaseDialog(Widget, ABC):
+class BaseDialog(Widget):
     """
     Базовый класс для всех диалоговых окон.
     Обеспечивает единообразный интерфейс и поведение.

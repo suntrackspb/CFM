@@ -64,6 +64,36 @@ class FileItem:
         except OSError as e:
             raise OSError(f"Не удается получить информацию о файле {path}: {e}")
 
+    @classmethod
+    def create_parent_item(cls, current_path: Path) -> FileItem:
+        """
+        Создает элемент для родительской директории (..).
+        
+        Args:
+            current_path: Текущий путь
+            
+        Returns:
+            FileItem: Элемент для родительской директории
+        """
+        parent_path = current_path.parent
+        try:
+            stat = parent_path.stat()
+            modified_time = datetime.fromtimestamp(stat.st_mtime)
+        except OSError:
+            # Если не можем получить статистику, используем текущее время
+            modified_time = datetime.now()
+            
+        return cls(
+            name="..",
+            path=parent_path,
+            is_dir=True,
+            size=None,
+            modified_time=modified_time,
+            is_hidden=False,
+            extension="",
+            permissions=0o755
+        )
+
     def format_size(self) -> str:
         """
         Форматирует размер файла в читаемом виде.
