@@ -21,6 +21,7 @@ MAX_VISIBLE_ROWS = 100
 # Горячие клавиши
 KEY_BINDINGS = {
     'help': 'f1',
+    'calculate_sizes': 'f3',
     'copy': 'f5',
     'move': 'f6',
     'mkdir': 'f7',

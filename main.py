@@ -23,7 +23,7 @@ from utils.helpers import resource_path, validate_filename
 
 # Настройка логирования
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # Временно включаем DEBUG для отладки
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -71,6 +71,7 @@ class FileManagerApp(App):
     
     BINDINGS = [
         (KEY_BINDINGS['help'], "help", "Help"),
+        (KEY_BINDINGS['calculate_sizes'], "calculate_sizes", "Calculate Sizes"),
         (KEY_BINDINGS['copy'], "copy", "Copy"),
         (KEY_BINDINGS['move'], "move", "Move"),
         (KEY_BINDINGS['mkdir'], "mkdir", "Create Folder"),
@@ -137,6 +138,11 @@ class FileManagerApp(App):
         if self.ui:
             await self.ui.show_help()
 
+    async def action_calculate_sizes(self) -> None:
+        """Подсчитывает размеры папок."""
+        if self.ui:
+            await self.ui.calculate_sizes()
+
     async def action_copy(self) -> None:
         """Копирует выбранные файлы."""
         if self.ui:
@@ -174,43 +180,66 @@ class FileManagerApp(App):
 
     async def action_quit(self) -> None:
         """Выходит из приложения."""
-        await self.exit()
+        self.exit()
 
     async def on_key(self, event: events.Key) -> None:
         """Обработчик клавиш."""
         # Сначала проверяем глобальные горячие клавиши
         key = event.key
         
-        # Глобальные горячие клавиши
+        # Глобальные горячие клавиши (только функциональные)
         if key == KEY_BINDINGS['switch_panel']:  # Tab
             await self.action_switch_panel()
+            event.prevent_default()
+            event.stop()
             return
         elif key == KEY_BINDINGS['help']:  # F1
             await self.action_help()
+            event.prevent_default()
+            event.stop()
+            return
+        elif key == KEY_BINDINGS['calculate_sizes']:  # F3
+            await self.action_calculate_sizes()
+            event.prevent_default()
+            event.stop()
             return
         elif key == KEY_BINDINGS['copy']:  # F5
             await self.action_copy()
+            event.prevent_default()
+            event.stop()
             return
         elif key == KEY_BINDINGS['move']:  # F6
             await self.action_move()
+            event.prevent_default()
+            event.stop()
             return
         elif key == KEY_BINDINGS['mkdir']:  # F7
             await self.action_mkdir()
+            event.prevent_default()
+            event.stop()
             return
         elif key == KEY_BINDINGS['delete']:  # F8
             await self.action_delete()
+            event.prevent_default()
+            event.stop()
             return
         elif key == KEY_BINDINGS['toggle_hidden']:  # F9
             await self.action_toggle_hidden()
+            event.prevent_default()
+            event.stop()
             return
         elif key == KEY_BINDINGS['refresh']:  # F10
             await self.action_refresh()
+            event.prevent_default()
+            event.stop()
             return
         elif key == KEY_BINDINGS['quit']:  # Ctrl+Q
             await self.action_quit()
+            event.prevent_default()
+            event.stop()
             return
         
-        # Если не глобальная клавиша, делегируем в UI
+        # Все остальные клавиши (навигационные) делегируем в UI
         if self.ui:
             await self.ui.handle_key(event)
 

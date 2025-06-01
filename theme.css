@@ -69,6 +69,17 @@ Panel {
   height: 1fr;
 }
 
+/* Скрываем стандартный курсор DataTable */
+.file-table > .datatable--cursor {
+  background: transparent !important;
+  color: #f8f8f2 !important;
+  text-style: none !important;
+}
+
+.file-table .datatable--cursor-line {
+  background: transparent !important;
+}
+
 .status-bar {
   background: #49483e;
   color: #66d9ef;

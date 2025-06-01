@@ -289,13 +289,20 @@ class FileManagerUI(Widget):
             "help_content",
             """Горячие клавиши:
 Tab - переключить панель
-F5 - копировать
-F6 - переместить
-F7 - создать папку
-F8 - удалить
-F9 - скрытые файлы
-Enter - открыть
-Backspace - назад"""
+F3 - подсчитать размеры папок
+F5 - копировать, F6 - переместить
+F7 - создать папку, F8 - удалить
+F9 - скрытые файлы, F10 - обновить
+Навигация:
+↑↓ - перемещение курсора
+←  - выход на уровень выше
+→  - вход в папку / запуск файла
+PageUp/PageDown - быстрый переход (10 элементов)
+Home/End - в начало/конец списка
+Enter - то же что →
+Backspace - то же что ←
+Пробел - выделить/снять
+Ctrl+A - выделить все"""
         )
         
         dialog = ConfirmDialog(
@@ -308,6 +315,13 @@ Backspace - назад"""
         
         await self.app.mount(dialog)
         dialog.focus()
+
+    async def calculate_sizes(self) -> None:
+        """Подсчитывает размеры папок в активной панели."""
+        active_panel = self.get_active_panel()
+        if active_panel:
+            await active_panel.calculate_directory_sizes()
+            self._update_status()
 
     async def handle_key(self, event: events.Key) -> None:
         """Обрабатывает клавиши для UI."""
