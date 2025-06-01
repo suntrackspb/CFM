@@ -3,6 +3,7 @@
 """
 from __future__ import annotations
 import logging
+import asyncio
 from pathlib import Path
 from typing import Optional, List, TYPE_CHECKING
 
@@ -157,14 +158,29 @@ class FileManagerUI(Widget):
             
         destination_dir = inactive_panel.current_path
         
-        # Показываем диалог подтверждения
-        message = self.language_manager.get_text(
-            "copy_confirm",
-            "Copy {count} items to {destination}?",
-            count=len(selected_items),
-            destination=str(destination_dir)
-        )
+        # Формируем подробное сообщение
+        if len(selected_items) == 1:
+            message = self.language_manager.get_text(
+                "copy_confirm_single",
+                "Copy '{name}' to {destination}?",
+                name=selected_items[0].name,
+                destination=str(destination_dir)
+            )
+        else:
+            # Показываем список файлов
+            file_list = "\n".join([f"• {item.name}" for item in selected_items[:5]])  # Показываем до 5 файлов
+            if len(selected_items) > 5:
+                file_list += f"\n... и еще {len(selected_items) - 5} файлов"
+                
+            message = self.language_manager.get_text(
+                "copy_confirm_multiple",
+                "Copy {count} items to {destination}?\n\n{files}",
+                count=len(selected_items),
+                destination=str(destination_dir),
+                files=file_list
+            )
         
+        # Показываем диалог подтверждения
         confirmed = await self._show_confirm_dialog(
             message,
             self.language_manager.get_text("copy", "Copy")
@@ -195,14 +211,29 @@ class FileManagerUI(Widget):
             
         destination_dir = inactive_panel.current_path
         
-        # Показываем диалог подтверждения
-        message = self.language_manager.get_text(
-            "move_confirm",
-            "Move {count} items to {destination}?",
-            count=len(selected_items),
-            destination=str(destination_dir)
-        )
+        # Формируем подробное сообщение
+        if len(selected_items) == 1:
+            message = self.language_manager.get_text(
+                "move_confirm_single",
+                "Move '{name}' to {destination}?",
+                name=selected_items[0].name,
+                destination=str(destination_dir)
+            )
+        else:
+            # Показываем список файлов
+            file_list = "\n".join([f"• {item.name}" for item in selected_items[:5]])  # Показываем до 5 файлов
+            if len(selected_items) > 5:
+                file_list += f"\n... и еще {len(selected_items) - 5} файлов"
+                
+            message = self.language_manager.get_text(
+                "move_confirm_multiple",
+                "Move {count} items to {destination}?\n\n{files}",
+                count=len(selected_items),
+                destination=str(destination_dir),
+                files=file_list
+            )
         
+        # Показываем диалог подтверждения
         confirmed = await self._show_confirm_dialog(
             message,
             self.language_manager.get_text("move", "Move")
@@ -225,32 +256,57 @@ class FileManagerUI(Widget):
         active_panel = self.get_active_panel()
         
         if not active_panel:
+            logger.debug("Нет активной панели")
             return
             
         selected_items = active_panel.get_selected_items()
         if not selected_items:
+            logger.debug("Нет выбранных элементов")
             return
             
-        # Показываем диалог подтверждения
-        message = self.language_manager.get_text(
-            "delete_confirm",
-            "Delete {count} items permanently?",
-            count=len(selected_items)
-        )
+        logger.debug(f"Выбрано для удаления: {len(selected_items)} элементов")
+        for item in selected_items:
+            logger.debug(f"  - {item.name}")
+            
+        # Формируем более подробное сообщение
+        if len(selected_items) == 1:
+            message = self.language_manager.get_text(
+                "delete_confirm_single",
+                "Delete '{name}' permanently?",
+                name=selected_items[0].name
+            )
+        else:
+            # Показываем список файлов
+            file_list = "\n".join([f"• {item.name}" for item in selected_items[:10]])  # Показываем до 10 файлов
+            if len(selected_items) > 10:
+                file_list += f"\n... и еще {len(selected_items) - 10} файлов"
+                
+            message = self.language_manager.get_text(
+                "delete_confirm_multiple",
+                "Delete {count} items permanently?\n\n{files}",
+                count=len(selected_items),
+                files=file_list
+            )
         
+        logger.debug(f"Показываем диалог подтверждения")
         confirmed = await self._show_confirm_dialog(
             message,
             self.language_manager.get_text("delete", "Delete")
         )
         
+        logger.debug(f"Результат диалога: {confirmed}")
         if confirmed:
+            logger.debug("Пользователь подтвердил удаление, выполняем операцию")
             try:
                 results = await self.file_operations.delete_items(selected_items)
                 await active_panel.reload_content()
                 self._show_operation_results(results, "delete")
+                logger.debug("Удаление завершено")
             except Exception as e:
                 logger.error(f"Ошибка удаления: {e}")
                 await self._show_error_dialog(str(e))
+        else:
+            logger.debug("Пользователь отменил удаление")
 
     async def create_directory(self) -> None:
         """Создает новую директорию."""
@@ -266,7 +322,23 @@ class FileManagerUI(Widget):
             language_manager=self.language_manager
         )
         
-        await self.app.push_screen(dialog)
+        result = await self.app.push_screen(dialog)
+        
+        # Обрабатываем результат
+        if result and validate_filename(result):
+            try:
+                op_result = await self.file_operations.create_directory(
+                    active_panel.current_path, result
+                )
+                if op_result.result.value == "success":
+                    await active_panel.reload_content()
+                else:
+                    await self._show_error_dialog(
+                        op_result.error_message or "Unknown error"
+                    )
+            except Exception as e:
+                logger.error(f"Ошибка создания директории: {e}")
+                await self._show_error_dialog(str(e))
 
     async def toggle_hidden_files(self) -> None:
         """Переключает отображение скрытых файлов."""
@@ -330,29 +402,6 @@ Ctrl+A - выделить все"""
         if active_panel:
             await active_panel.handle_key(event)
 
-    async def handle_dialog_result(self, message: DialogResult) -> None:
-        """Обрабатывает результаты диалогов."""
-        # Обрабатываем только диалоги создания директории
-        if (message.dialog_type == "input" and 
-            isinstance(message.result, str) and 
-            message.confirmed):
-            # Обработка создания директории
-            active_panel = self.get_active_panel()
-            if active_panel and validate_filename(message.result):
-                try:
-                    result = await self.file_operations.create_directory(
-                        active_panel.current_path, message.result
-                    )
-                    if result.result.value == "success":
-                        await active_panel.reload_content()
-                    else:
-                        await self._show_error_dialog(
-                            result.error_message or "Unknown error"
-                        )
-                except Exception as e:
-                    logger.error(f"Ошибка создания директории: {e}")
-                    await self._show_error_dialog(str(e))
-
     def save_state_to_config(self) -> None:
         """Сохраняет состояние UI в конфигурацию."""
         if self.left_panel:
@@ -369,17 +418,23 @@ Ctrl+A - выделить все"""
 
     async def _show_confirm_dialog(self, message: str, title: str) -> bool:
         """Показывает диалог подтверждения."""
+        logger.debug(f"Создаем диалог подтверждения: {title}")
         dialog = ConfirmDialog(
             message=message,
             title=title,
-            language_manager=self.language_manager
+            language_manager=self.language_manager,
+            dialog_type="confirm"
         )
         
-        await self.app.push_screen(dialog)
+        # Используем push_screen и ждем результат
+        logger.debug("Показываем диалог...")
+        result = await self.app.push_screen(dialog)
+        logger.debug(f"Диалог вернул результат: {result}, тип: {type(result)}")
         
-        # В реальной реализации здесь должно быть асинхронное ожидание результата
-        # Пока возвращаем True для тестирования
-        return True
+        # Возвращаем True если пользователь подтвердил (нажал Yes)
+        is_confirmed = result == "yes"
+        logger.debug(f"Интерпретируем как подтверждение: {is_confirmed}")
+        return is_confirmed
 
     async def _show_error_dialog(self, error: str) -> None:
         """Показывает диалог ошибки."""
@@ -388,7 +443,8 @@ Ctrl+A - выделить все"""
             title=self.language_manager.get_text("error", "Error"),
             show_cancel=False,
             no_text=self.language_manager.get_text("close", "Close"),
-            language_manager=self.language_manager
+            language_manager=self.language_manager,
+            dialog_type="error"
         )
         
         await self.app.push_screen(dialog)

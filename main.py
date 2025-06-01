@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 import logging
+import asyncio
 from pathlib import Path
 from typing import Optional
 
@@ -16,17 +17,25 @@ from core.config_manager import ConfigManager
 from core.language_manager import LanguageManager
 from core.file_operations import FileOperationsManager, ConflictResolver, OperationType
 from ui.app_ui import FileManagerUI
-from ui.dialogs.base import ConfirmDialog, InputDialog, DialogResult
+from ui.dialogs.base import ConfirmDialog, InputDialog, DialogResult, ConflictDialog
 from utils.constants import KEY_BINDINGS, THEME_FILENAME
 from utils.helpers import resource_path, validate_filename
 
 
 # Настройка логирования
 logging.basicConfig(
-    level=logging.WARNING,  # Временно включаем DEBUG для отладки
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('debug.log', mode='w', encoding='utf-8'),  # Все в файл
+        # logging.StreamHandler()  # Убираем вывод в консоль
+    ]
 )
 logger = logging.getLogger(__name__)
+
+# Включаем DEBUG для конкретных модулей
+logging.getLogger('ui.dialogs.base').setLevel(logging.DEBUG)
+logging.getLogger('ui.app_ui').setLevel(logging.DEBUG)
 
 
 class UIConflictResolver(ConflictResolver):
@@ -43,21 +52,26 @@ class UIConflictResolver(ConflictResolver):
             filename=destination.name
         )
         
-        dialog = ConfirmDialog(
+        dialog = ConflictDialog(
             message=message,
             title=self.app.language_manager.get_text("conflict", "File Conflict"),
             yes_text=self.app.language_manager.get_text("overwrite", "Overwrite"),
             no_text=self.app.language_manager.get_text("skip", "Skip"),
             cancel_text=self.app.language_manager.get_text("cancel", "Cancel"),
-            language_manager=self.app.language_manager
+            language_manager=self.app.language_manager,
+            dialog_type="conflict"
         )
         
         # Показываем диалог и ждем результат
-        await self.app.push_screen(dialog)
+        result = await self.app.push_screen(dialog)
         
-        # Здесь должна быть логика ожидания результата диалога
-        # В реальной реализации нужно использовать асинхронное ожидание
-        return "overwrite"  # Временное решение
+        # Возвращаем соответствующий результат
+        if result == "yes":
+            return "overwrite"
+        elif result == "no":
+            return "skip"
+        else:
+            return "cancel"
 
 
 class FileManagerApp(App):
@@ -241,11 +255,6 @@ class FileManagerApp(App):
         # Все остальные клавиши (навигационные) делегируем в UI
         if self.ui:
             await self.ui.handle_key(event)
-
-    async def on_dialog_result(self, message: DialogResult) -> None:
-        """Обработчик результатов диалогов."""
-        if self.ui:
-            await self.ui.handle_dialog_result(message)
 
     def get_language_text(self, key: str, default: Optional[str] = None, **kwargs) -> str:
         """Получает локализованный текст."""

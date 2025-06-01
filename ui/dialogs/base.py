@@ -10,6 +10,9 @@ from textual.containers import Horizontal, Vertical
 from textual.message import Message
 from textual import events
 from core.language_manager import LanguageManager
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DialogResult(Message):
@@ -43,14 +46,13 @@ class BaseDialog(Screen):
             language_manager: Менеджер языков для локализации
             dialog_type: Тип диалога для различения результатов
         """
-        # Убираем modal из kwargs так как он не нужен для Screen
-        kwargs.pop('modal', None)
         super().__init__(**kwargs)
         self.title = title
         self.language_manager = language_manager
         self.dialog_type = dialog_type
         self._result: Any = None
         self._confirmed = False
+        logger.debug(f"Создан диалог типа {dialog_type} с заголовком '{title}'")
         
     def get_text(self, key: str, default: Optional[str] = None, **kwargs) -> str:
         """Получает локализованный текст."""
@@ -65,19 +67,24 @@ class BaseDialog(Screen):
         
     def post_result(self, result: Any, confirmed: bool = False) -> None:
         """Отправляет результат диалога."""
+        logger.debug(f"post_result вызван: result={result}, confirmed={confirmed}, dialog_type={self.dialog_type}")
         self._result = result
         self._confirmed = confirmed
-        self.post_message(DialogResult(result, confirmed, self.dialog_type))
-        # Закрываем экран
+        
+        # Закрываем диалог с результатом
+        logger.debug(f"Вызываем dismiss с результатом: {result}")
         self.dismiss(result)
         
     async def on_key(self, event: events.Key) -> None:
-        """Обработка клавиш по умолчанию."""
+        """Обрабатывает клавиш по умолчанию."""
+        logger.debug(f"BaseDialog on_key: {event.key} для диалога типа {self.dialog_type}")
         if event.key == "escape":
+            logger.debug("BaseDialog: Escape нажат, отменяем диалог")
             await self.cancel()
             
     async def cancel(self) -> None:
         """Отменяет диалог."""
+        logger.debug(f"Отменяем диалог типа {self.dialog_type}")
         self.dismiss(None)
         
     async def close(self) -> None:
@@ -128,6 +135,8 @@ class ConfirmDialog(BaseDialog):
         self._btn_yes = Button(self.yes_text, id="yes", variant="primary")
         self._btn_no = Button(self.no_text, id="no", variant="default")
         self._btn_cancel = Button(self.cancel_text, id="cancel", variant="default") if show_cancel else None
+        
+        logger.debug(f"ConfirmDialog создан: message='{message[:50]}...', show_cancel={show_cancel}")
 
     def compose(self) -> Any:
         """Создает содержимое диалога подтверждения."""
@@ -157,24 +166,66 @@ class ConfirmDialog(BaseDialog):
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Обрабатывает нажатие кнопок."""
         button_id = event.button.id
+        logger.debug(f"Нажата кнопка: {button_id}")
         
         if button_id == "yes":
+            logger.debug("Отправляем результат 'yes'")
             self.post_result("yes", True)
         elif button_id == "no":
+            logger.debug("Отправляем результат 'no'")
             self.post_result("no", True)
         elif button_id == "cancel":
+            logger.debug("Отправляем результат 'cancel'")
             self.post_result("cancel", False)
 
     async def on_key(self, event: events.Key) -> None:
         """Обрабатывает горячие клавиши."""
         key = event.key.lower()
+        logger.debug(f"Нажата клавиша в диалоге: {key}")
         
         if key == "y" or key == "enter":
+            logger.debug("Отправляем результат 'yes' (клавиша)")
             self.post_result("yes", True)
+            event.prevent_default()
+            event.stop()
         elif key == "n":
+            logger.debug("Отправляем результат 'no' (клавиша)")
             self.post_result("no", True)
+            event.prevent_default()
+            event.stop()
         elif key == "c" or key == "escape":
+            logger.debug("Отправляем результат 'cancel' (клавиша)")
             self.post_result("cancel", False)
+            event.prevent_default()
+            event.stop()
+
+
+class ConflictDialog(ConfirmDialog):
+    """
+    Специализированный диалог для разрешения конфликтов файлов.
+    Добавляет горячую клавишу 'O' для Overwrite.
+    """
+    
+    async def on_key(self, event: events.Key) -> None:
+        """Обрабатывает горячие клавиши включая O для Overwrite."""
+        key = event.key.lower()
+        logger.debug(f"Нажата клавиша в конфликт-диалоге: {key}")
+        
+        if key == "y" or key == "o" or key == "enter":  # Y, O или Enter для подтверждения
+            logger.debug("Отправляем результат 'yes' (конфликт-диалог)")
+            self.post_result("yes", True)
+            event.prevent_default()
+            event.stop()
+        elif key == "n" or key == "s":  # N или S для пропуска
+            logger.debug("Отправляем результат 'no' (конфликт-диалог)")
+            self.post_result("no", True)
+            event.prevent_default()
+            event.stop()
+        elif key == "c" or key == "escape":  # C или Escape для отмены
+            logger.debug("Отправляем результат 'cancel' (конфликт-диалог)")
+            self.post_result("cancel", False)
+            event.prevent_default()
+            event.stop()
 
 
 class InputDialog(BaseDialog):
@@ -257,8 +308,12 @@ class InputDialog(BaseDialog):
             value = self._input.value.strip()
             if self._validate_input(value):
                 self.post_result(value, True)
+                event.prevent_default()
+                event.stop()
         elif event.key == "escape":
             self.post_result("", False)
+            event.prevent_default()
+            event.stop()
 
     def _validate_input(self, value: str) -> bool:
         """Валидирует введенное значение."""
