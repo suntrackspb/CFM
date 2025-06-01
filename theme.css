@@ -93,6 +93,25 @@ Panel {
   background: #49483e;
   border: solid #66d9ef;
   padding: 1;
+  width: 60;
+  height: auto;
+  margin: 2 4;
+}
+
+/* Модальные диалоги */
+BaseDialog {
+  align: center middle;
+  background: #272822aa;  /* Полупрозрачный фон */
+}
+
+ConfirmDialog {
+  align: center middle;
+  background: #272822aa;  /* Полупрозрачный фон */
+}
+
+InputDialog {
+  align: center middle;
+  background: #272822aa;  /* Полупрозрачный фон */
 }
 
 .dialog-title {

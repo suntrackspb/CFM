@@ -4,7 +4,7 @@
 from __future__ import annotations
 from abc import abstractmethod
 from typing import Any, Optional, Dict, Callable
-from textual.widget import Widget
+from textual.screen import Screen
 from textual.widgets import Button, Static
 from textual.containers import Horizontal, Vertical
 from textual.message import Message
@@ -15,13 +15,14 @@ from core.language_manager import LanguageManager
 class DialogResult(Message):
     """Базовое сообщение результата диалога."""
     
-    def __init__(self, result: Any, confirmed: bool = False) -> None:
+    def __init__(self, result: Any, confirmed: bool = False, dialog_type: str = "unknown") -> None:
         super().__init__()
         self.result = result
         self.confirmed = confirmed
+        self.dialog_type = dialog_type
 
 
-class BaseDialog(Widget):
+class BaseDialog(Screen):
     """
     Базовый класс для всех диалоговых окон.
     Обеспечивает единообразный интерфейс и поведение.
@@ -31,7 +32,7 @@ class BaseDialog(Widget):
         self,
         title: str = "",
         language_manager: Optional[LanguageManager] = None,
-        modal: bool = True,
+        dialog_type: str = "base",
         **kwargs
     ):
         """
@@ -40,12 +41,14 @@ class BaseDialog(Widget):
         Args:
             title: Заголовок диалога
             language_manager: Менеджер языков для локализации
-            modal: Модальность диалога
+            dialog_type: Тип диалога для различения результатов
         """
+        # Убираем modal из kwargs так как он не нужен для Screen
+        kwargs.pop('modal', None)
         super().__init__(**kwargs)
         self.title = title
         self.language_manager = language_manager
-        self.modal = modal
+        self.dialog_type = dialog_type
         self._result: Any = None
         self._confirmed = False
         
@@ -64,7 +67,9 @@ class BaseDialog(Widget):
         """Отправляет результат диалога."""
         self._result = result
         self._confirmed = confirmed
-        self.post_message(DialogResult(result, confirmed))
+        self.post_message(DialogResult(result, confirmed, self.dialog_type))
+        # Закрываем экран
+        self.dismiss(result)
         
     async def on_key(self, event: events.Key) -> None:
         """Обработка клавиш по умолчанию."""
@@ -73,11 +78,11 @@ class BaseDialog(Widget):
             
     async def cancel(self) -> None:
         """Отменяет диалог."""
-        self.post_result(None, False)
+        self.dismiss(None)
         
     async def close(self) -> None:
         """Закрывает диалог."""
-        await self.remove()
+        self.dismiss(None)
 
 
 class ConfirmDialog(BaseDialog):
@@ -94,6 +99,7 @@ class ConfirmDialog(BaseDialog):
         cancel_text: Optional[str] = None,
         show_cancel: bool = True,
         language_manager: Optional[LanguageManager] = None,
+        dialog_type: str = "confirm",
         **kwargs
     ):
         """
@@ -107,8 +113,9 @@ class ConfirmDialog(BaseDialog):
             cancel_text: Текст кнопки "Отмена"
             show_cancel: Показывать ли кнопку отмены
             language_manager: Менеджер языков
+            dialog_type: Тип диалога
         """
-        super().__init__(title, language_manager, **kwargs)
+        super().__init__(title, language_manager, dialog_type, **kwargs)
         self.message = message
         self.show_cancel = show_cancel
         
@@ -200,7 +207,7 @@ class InputDialog(BaseDialog):
             validator: Функция валидации ввода
             language_manager: Менеджер языков
         """
-        super().__init__(title, language_manager, **kwargs)
+        super().__init__(title, language_manager, dialog_type="input", **kwargs)
         self.prompt = prompt
         self.default_value = default_value
         self.placeholder = placeholder
@@ -282,7 +289,7 @@ class ProgressDialog(BaseDialog):
             can_cancel: Можно ли отменить операцию
             language_manager: Менеджер языков
         """
-        super().__init__(title, language_manager, **kwargs)
+        super().__init__(title, language_manager, dialog_type="progress", **kwargs)
         self.message = message
         self.can_cancel = can_cancel
         

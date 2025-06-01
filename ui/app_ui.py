@@ -266,8 +266,7 @@ class FileManagerUI(Widget):
             language_manager=self.language_manager
         )
         
-        await self.app.mount(dialog)
-        dialog.focus()
+        await self.app.push_screen(dialog)
 
     async def toggle_hidden_files(self) -> None:
         """Переключает отображение скрытых файлов."""
@@ -310,11 +309,12 @@ Ctrl+A - выделить все"""
             title=self.language_manager.get_text("help", "Help"),
             show_cancel=False,
             no_text=self.language_manager.get_text("close", "Close"),
-            language_manager=self.language_manager
+            language_manager=self.language_manager,
+            dialog_type="help"
         )
         
-        await self.app.mount(dialog)
-        dialog.focus()
+        # Используем push_screen для модального диалога
+        await self.app.push_screen(dialog)
 
     async def calculate_sizes(self) -> None:
         """Подсчитывает размеры папок в активной панели."""
@@ -332,7 +332,10 @@ Ctrl+A - выделить все"""
 
     async def handle_dialog_result(self, message: DialogResult) -> None:
         """Обрабатывает результаты диалогов."""
-        if isinstance(message.result, str) and message.confirmed:
+        # Обрабатываем только диалоги создания директории
+        if (message.dialog_type == "input" and 
+            isinstance(message.result, str) and 
+            message.confirmed):
             # Обработка создания директории
             active_panel = self.get_active_panel()
             if active_panel and validate_filename(message.result):
@@ -372,8 +375,7 @@ Ctrl+A - выделить все"""
             language_manager=self.language_manager
         )
         
-        await self.app.mount(dialog)
-        dialog.focus()
+        await self.app.push_screen(dialog)
         
         # В реальной реализации здесь должно быть асинхронное ожидание результата
         # Пока возвращаем True для тестирования
@@ -389,8 +391,7 @@ Ctrl+A - выделить все"""
             language_manager=self.language_manager
         )
         
-        await self.app.mount(dialog)
-        dialog.focus()
+        await self.app.push_screen(dialog)
 
     def _show_operation_results(self, results: List, operation: str) -> None:
         """Показывает результаты операции."""

@@ -23,7 +23,7 @@ from utils.helpers import resource_path, validate_filename
 
 # Настройка логирования
 logging.basicConfig(
-    level=logging.DEBUG,  # Временно включаем DEBUG для отладки
+    level=logging.WARNING,  # Временно включаем DEBUG для отладки
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -53,8 +53,7 @@ class UIConflictResolver(ConflictResolver):
         )
         
         # Показываем диалог и ждем результат
-        await self.app.mount(dialog)
-        self.app.set_focus(dialog)
+        await self.app.push_screen(dialog)
         
         # Здесь должна быть логика ожидания результата диалога
         # В реальной реализации нужно использовать асинхронное ожидание
