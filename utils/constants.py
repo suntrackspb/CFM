@@ -28,7 +28,7 @@ KEY_BINDINGS = {
     'toggle_hidden': 'f9',
     'switch_panel': 'tab',
     'select_all': 'ctrl+a',
-    'refresh': 'f5',
+    'refresh': 'f10',
     'quit': 'ctrl+q'
 }
 

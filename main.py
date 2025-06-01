@@ -178,8 +178,40 @@ class FileManagerApp(App):
 
     async def on_key(self, event: events.Key) -> None:
         """Обработчик клавиш."""
-        # Делегируем обработку клавиш в UI, если они не обработаны глобально
-        if self.ui and not event.is_handled:
+        # Сначала проверяем глобальные горячие клавиши
+        key = event.key
+        
+        # Глобальные горячие клавиши
+        if key == KEY_BINDINGS['switch_panel']:  # Tab
+            await self.action_switch_panel()
+            return
+        elif key == KEY_BINDINGS['help']:  # F1
+            await self.action_help()
+            return
+        elif key == KEY_BINDINGS['copy']:  # F5
+            await self.action_copy()
+            return
+        elif key == KEY_BINDINGS['move']:  # F6
+            await self.action_move()
+            return
+        elif key == KEY_BINDINGS['mkdir']:  # F7
+            await self.action_mkdir()
+            return
+        elif key == KEY_BINDINGS['delete']:  # F8
+            await self.action_delete()
+            return
+        elif key == KEY_BINDINGS['toggle_hidden']:  # F9
+            await self.action_toggle_hidden()
+            return
+        elif key == KEY_BINDINGS['refresh']:  # F10
+            await self.action_refresh()
+            return
+        elif key == KEY_BINDINGS['quit']:  # Ctrl+Q
+            await self.action_quit()
+            return
+        
+        # Если не глобальная клавиша, делегируем в UI
+        if self.ui:
             await self.ui.handle_key(event)
 
     async def on_dialog_result(self, message: DialogResult) -> None:

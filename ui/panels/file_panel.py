@@ -176,11 +176,17 @@ class FilePanel(Widget):
             # Восстанавливаем выделение
             if 0 <= self.selected_index < len(self.file_items):
                 if self.file_table:
-                    self.file_table.cursor_row = self.selected_index
+                    try:
+                        self.file_table.move_cursor(row=self.selected_index)
+                    except Exception:
+                        pass
             else:
                 self.selected_index = 0
                 if self.file_table and self.file_items:
-                    self.file_table.cursor_row = 0
+                    try:
+                        self.file_table.move_cursor(row=0)
+                    except Exception:
+                        pass
                     
             # Очищаем множественное выделение
             self.selected_items.clear()
@@ -267,7 +273,12 @@ class FilePanel(Widget):
             self.config.selected_index = new_index
             
             if self.file_table:
-                self.file_table.cursor_row = new_index
+                # Используем метод move_cursor вместо прямого присвоения
+                try:
+                    self.file_table.move_cursor(row=new_index)
+                except Exception:
+                    # Если move_cursor не работает, пытаемся другие методы
+                    pass
                 
             await self._update_table()  # Обновляем для изменения стилей
 
@@ -278,7 +289,10 @@ class FilePanel(Widget):
             self.config.selected_index = index
             
             if self.file_table:
-                self.file_table.cursor_row = index
+                try:
+                    self.file_table.move_cursor(row=index)
+                except Exception:
+                    pass
                 
             await self._update_table()
 
